@@ -1973,6 +1973,8 @@ export class SelectQueryBuilder<Entity> extends QueryBuilder<Entity> implements 
                 return `${distinctAlias}.${columnAlias} as "${alias}"`;
             });
 
+            const cacheId = this.expressionMap.cacheId;
+            const findIdsCacheId = (cacheId) ? `${cacheId}-ids` : cacheId;
             rawResults = await new SelectQueryBuilder(this.connection, queryRunner)
                 .select(`DISTINCT ${querySelects.join(", ")}`)
                 .addSelect(selects)
@@ -1980,7 +1982,7 @@ export class SelectQueryBuilder<Entity> extends QueryBuilder<Entity> implements 
                 .offset(this.expressionMap.skip)
                 .limit(this.expressionMap.take)
                 .orderBy(orderBys)
-                .cache(this.expressionMap.cache ? this.expressionMap.cache : this.expressionMap.cacheId, this.expressionMap.cacheDuration)
+                .cache((this.expressionMap.cache && cacheId) ? findIdsCacheId : this.expressionMap.cache, this.expressionMap.cacheDuration)
                 .setParameters(this.getParameters())
                 .setNativeParameters(this.expressionMap.nativeParameters)
                 .getRawMany();

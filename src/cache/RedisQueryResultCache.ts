@@ -167,9 +167,18 @@ export class RedisQueryResultCache implements QueryResultCache {
      * Removes all cached results by given identifiers from cache.
      */
     async remove(identifiers: string[], queryRunner?: QueryRunner): Promise<void> {
-        await Promise.all(identifiers.map(identifier => {
-            return this.deleteKey(identifier);
-        }));
+        // This removes all the caches associated with that identifier
+        const allIdentifiers = identifiers.map((id) => {
+            return [
+                id,
+                // For count queries
+                `${id}-count`,
+                // For limits or skips with join queries
+                `${id}-ids`,
+            ];
+        });
+        const merged = Array<string>().concat(...allIdentifiers);
+        await this.deleteKeys(merged);
     }
 
     // -------------------------------------------------------------------------
@@ -179,9 +188,9 @@ export class RedisQueryResultCache implements QueryResultCache {
     /**
      * Removes a single key from redis database.
      */
-    protected deleteKey(key: string): Promise<void> {
+    protected deleteKeys(keys: string[]): Promise<void> {
         return new Promise<void>((ok, fail) => {
-            this.client.del(key, (err: any, result: any) => {
+            this.client.del(...keys, (err: any, result: any) => {
                 if (err) return fail(err);
                 ok();
             });
